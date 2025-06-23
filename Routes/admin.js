@@ -6,6 +6,7 @@ const { z } = require("zod");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
+const { CourseModel } = require("../Models/CourseModel");
 
 dotenv.config();
 
@@ -68,27 +69,105 @@ adminRouter.post("/signin", async (req,res) => {
     }
     const token = jwt.sign({
         adminId: Admin._id.toString()
-    },process.env.JWT_SECRET);
+    },process.env.JWT_ADMIN_PASSWORD);
     
     res.status(200).json({
         token: token
     })
 })
 
-adminRouter.post("/course", AdminAuth , (req,res) => {
+adminRouter.post("/course", AdminAuth , async (req,res) => {
+    const AdminId = req.AdminId;
+    const { title , description , price } = req.body;
+
+    try{
+        await CourseModel.create({
+            title,
+            description,
+            price,
+            creatorId: AdminId
+        })
+        res.status(200).json({
+            message: "Successfully created a new course"
+        })
+    }catch(e){
+        console.log(e);
+        return res.status(500).json({
+            message: "Internal Server Error"
+        })
+    }
 
 })
 
-adminRouter.delete("/course", AdminAuth,  (req,res) => {
-
+adminRouter.put("/course", AdminAuth, async (req,res) => {
+    const AdminId = req.AdminId;
+    const { CourseId, ...updates } = req.body;
+    try{
+        const Courses = await CourseModel.find({creatorId: AdminId});
+        if(Courses.length === 0){
+            return res.json({
+                message: "This Admin doesn't have any courses."
+            });
+        }else{
+            const FoundCourse = Courses.find(course => course._id.toString() === CourseId);
+            if(!FoundCourse){
+                return res.json({
+                    message: "No course found with the given courseId"
+                })
+            }
+            const UpdateCourse = await CourseModel.findByIdAndUpdate(
+                CourseId,
+                { $set: updates},
+                { new: true}
+            )
+            res.status(200).json({
+                UpdatedCourse: UpdateCourse 
+            })
+        }
+    }catch(e){
+        return res.status(500).json({
+            message: "Internal Server Error"
+        })
+    }
 })
 
-adminRouter.put("/course", AdminAuth , (req,res) => {
+adminRouter.delete("/course", AdminAuth , async (req,res) => {
+    const AdminId = req.AdminId;
+    const CourseId = req.body.courseId;
 
+    try{
+        const Courses = await CourseModel.find({
+            creatorId: AdminId
+        })
+        if(Courses.length === 0){
+            return res.json({
+                message: "This Admin doesn't have any courses."
+            });
+        }else{
+            const FoundCourse = Courses.find(course => course._id.toString() === CourseId);
+            if(!FoundCourse){
+                return res.json({
+                    message: "No course found with the given courseId"
+                })
+            }
+            const DeleteCourse = await CourseModel.findByIdAndDelete(CourseId);
+            res.status(200).json({
+                CourseDeleted: DeleteCourse
+            })
+        }
+    }catch(e){
+        return res.status(500).json({
+            message: "Internal Server Error"
+        })
+    }
 })
 
-adminRouter.get("/course/bulk", AdminAuth , (req,res) => {
-
+adminRouter.get("/course/bulk", AdminAuth , async (req,res) => {
+    const AdminId = req.AdminId;
+    const Courses = await CourseModel.find({creatorId: AdminId});
+    res.json({
+        "message": Courses
+    })
 })
 
 module.exports = {

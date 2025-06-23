@@ -6,9 +6,9 @@ dotenv.config();
 
 const UserAuth = async (req,res,next) => {
     const token = req.headers.token;
-    const decodedToken = await jwt.verify(token,process.env.JWT_SECRET);
+    const decodedToken = await jwt.verify(token,process.env.JWT_USER_PASSWORD);
     if(decodedToken){
-        req.id = decodedToken.id;
+        req.UserId = decodedToken.id;
         next();
     }
     else{
@@ -20,9 +20,9 @@ const UserAuth = async (req,res,next) => {
 
 const AdminAuth = async (req,res,next) => {
     const token = req.headers.token;
-    const decodedToken = await jwt.verify(token,process.env.JWT_SECRET);
+    const decodedToken = await jwt.verify(token,process.env.JWT_ADMIN_PASSWORD);
     if(decodedToken){
-        req.id = decodedToken.id;
+        req.AdminId = decodedToken.adminId;
         next();
     }
     else{
